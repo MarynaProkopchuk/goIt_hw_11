@@ -50,3 +50,13 @@ async def update_contact(contact_id: int, body: ContactUpdateSchema, db: AsyncSe
     stmt = select(Contact).filter_by(id=contact_id)
     updated_contact = await db.execute(stmt)
     return updated_contact.scalar_one_or_none()
+
+
+async def delete_contact(contact_id: int, db: AsyncSession):
+    stmt = stmt = select(Contact).filter_by(id=contact_id)
+    contact = await db.execute(stmt)
+    contact = contact.scalar_one_or_none()
+    if contact:
+        await db.delete(contact)
+        await db.commit()
+    return contact
