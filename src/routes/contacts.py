@@ -95,6 +95,12 @@ async def delete_contact(
     return None
 
 
-@router.get("/birthdays")
-async def get_contacts_with_birthdays():
-    pass
+@router.get("/birthdays", response_model=list[ContactResponse])
+async def get_upcoming_birthdays(db: AsyncSession = Depends(get_db)):
+    contacts = await repositories_contacts.get_upcoming_birthdays(db)
+    if not contacts:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No contacts with upcoming birthdays found",
+        )
+    return contacts

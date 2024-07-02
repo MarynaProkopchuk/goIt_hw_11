@@ -1,6 +1,7 @@
 from typing import Optional
-
-from sqlalchemy import select, update
+from datetime import datetime, timedelta
+from sqlalchemy import select, update, extract, and_
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.entity.models import Contact
@@ -43,8 +44,13 @@ async def update_contact(contact_id: int, body: ContactUpdateSchema, db: AsyncSe
         .values(**update_data)
         .execution_options(synchronize_session="fetch")
     )
-    result = await db.execute(stmt)
-    await db.commit()
+    try:
+        result = await db.execute(stmt)
+        await db.commit()
+    except SQLAlchemyError as e:
+        await db.rollback()
+        raise e
+
     if result.rowcount == 0:
         return None
     stmt = select(Contact).filter_by(id=contact_id)
@@ -60,3 +66,26 @@ async def delete_contact(contact_id: int, db: AsyncSession):
         await db.delete(contact)
         await db.commit()
     return contact
+
+
+async def get_upcoming_birthdays(db: AsyncSession):
+    today = datetime.today()
+    today_month = today.month
+    today_day = today.day
+
+    next_week = today + timedelta(days=7)
+    next_week_month = next_week.month
+    next_week_day = next_week.day
+
+    stmt = select(Contact).where(
+        and_(
+            (extract("month", Contact.birthday) == today_month)
+            & (extract("day", Contact.birthday) >= today_day)
+            | (extract("month", Contact.birthday) == next_week_month)
+            & (extract("day", Contact.birthday) <= next_week_day)
+            | (extract("month", Contact.birthday) > today_month)
+            & (extract("month", Contact.birthday) < next_week_month)
+        )
+    )
+    result = await db.execute(stmt)
+    return result.scalars().all()
