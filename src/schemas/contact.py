@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -13,11 +12,8 @@ class ContactSchema(BaseModel):
 
 
 class ContactUpdateSchema(BaseModel):
-    name: str | None = Field(min_length=3, max_length=50, default=None)
-    surname: str | None = Field(min_length=3, max_length=50, default=None)
     email: EmailStr | None = None
     phone: str | None = Field(max_length=10, default=None)
-    birthday: date | None = None
 
     class Config:
         from_attributes = True
